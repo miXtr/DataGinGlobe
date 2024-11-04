@@ -1,0 +1,95 @@
+<head>
+    <style> body { margin: 0; } </style>
+  
+    <script src="//unpkg.com/globe.gl"></script>
+    <!--<script src="../../dist/globe.gl.js"></script>-->
+  </head>
+  
+  <body>
+    <div id="globeViz"></div>
+  
+    <script type="module">
+      import * as THREE from '//unpkg.com/three/build/three.module.js';
+
+      fetch('../ne_110m_admin_0_countries.geojson').then(res => res.json()).then(countries =>
+      {
+  
+      const world = Globe({ animateIn: false })
+        (document.getElementById('globeViz'))
+        .globeImageUrl('//unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+        .bumpImageUrl('//unpkg.com/three-globe/example/img/earth-topology.png')
+        .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
+        //.showGraticules(true)
+        //.showAtmosphere(true)
+        .atmosphereAltitude(0.25)
+        .lineHoverPrecision(0)
+        .polygonsData(countries.features.filter(d => d.properties.ISO_A2 !== 'AQ'))
+        .polygonAltitude(0.006)
+        .polygonsTransitionDuration(200)
+        //.polygonCapColor(() => 'green')
+        .polygonCapColor(() => 'rgba(34,139,34, 0.2)')
+        .polygonSideColor(() => 'rgba(34,139,34, 0.6)')
+        .polygonStrokeColor(() => '#111')
+        .polygonLabel(({ properties: d }) => `
+          <b>${d.ADMIN} (${d.ISO_A2}):</b> <br />
+          GDP: <i>${d.GDP_MD_EST}</i> M$<br/>
+          Population: <i>${d.POP_EST}</i>
+        `)
+        .onPolygonClick(log)
+        .onPolygonHover(hoverD => world
+          .polygonAltitude(d => d === hoverD ? 0.03 : 0.006)
+          //.polygonCapColor(d => d === hoverD ? 'steelblue' : 'rgba(200, 0, 0, 0.6)')
+        )
+  
+      // Auto-rotate
+      world.controls().autoRotate = true;
+      world.controls().autoRotateSpeed = 0.35;
+
+//   const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+//   directionalLight.position.set( 0, 1, 0);
+//   directionalLight.castShadow = true;
+//   directionalLight.shadow = 
+//   directionalLight.isDirectionalLight = true;
+//   world.scene().add( directionalLight );
+
+// light.shadow.mapSize.width = 512; // default
+// light.shadow.mapSize.height = 512; // default
+// light.shadow.camera.near = 0.5; // default
+// light.shadow.camera.far = 500; // default
+
+// const sphereGeometry = new THREE.SphereGeometry( 5, 32, 32 );
+// const sphereMaterial = new THREE.MeshStandardMaterial( { color: 0xff0000 } );
+// const sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
+// sphere.castShadow = true; //default is false
+// sphere.receiveShadow = false; //default
+// world.scene().add( sphere );
+
+
+      // Add clouds sphere
+      const CLOUDS_IMG_URL = './clouds.png'; // from https://github.com/turban/webgl-earth
+      const CLOUDS_ALT = 0.02;
+      const CLOUDS_ROTATION_SPEED = -0.006; // deg/frame
+  
+      new THREE.TextureLoader().load(CLOUDS_IMG_URL, cloudsTexture => {
+        const clouds = new THREE.Mesh(
+          new THREE.SphereGeometry(world.getGlobeRadius() * (1 + CLOUDS_ALT), 75, 75),
+          new THREE.MeshPhongMaterial({ map: cloudsTexture, transparent: true })
+        );
+        world.scene().add(clouds);
+  
+        (function rotateClouds() {
+          clouds.rotation.y += CLOUDS_ROTATION_SPEED * Math.PI / 180;
+          requestAnimationFrame(rotateClouds);
+        })();
+      });
+
+      function log(polygon, event, { lat, lng, altitude }){
+          console.log(lat, lng, altitude);
+          var rotate = world.controls().autoRotate;
+          world.controls().autoRotate = !rotate;
+      };
+
+    });
+
+    </script>
+  </body>
